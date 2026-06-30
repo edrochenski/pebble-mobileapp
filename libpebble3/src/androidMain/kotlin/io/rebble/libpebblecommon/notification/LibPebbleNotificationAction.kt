@@ -53,9 +53,10 @@ data class LibPebbleNotificationAction(
             action: Action,
             notificationConfig: NotificationConfig,
             notificationProperties: NotificationProperties?,
+            isAlarm: Boolean,
         ): LibPebbleNotificationAction? {
             if (action.showsUserInterface()) {
-                val showUserInterfaceActions = notificationConfig.addShowsUserInterfaceActions || notificationProperties?.addShowsUserInterfaceActions == true
+                val showUserInterfaceActions = isAlarm || notificationConfig.addShowsUserInterfaceActions || notificationProperties?.addShowsUserInterfaceActions == true
                 if (!showUserInterfaceActions) {
                     return null
                 }

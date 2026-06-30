@@ -117,8 +117,10 @@ class NotificationHandler(
     }
 
     private suspend fun processNotification(sbn: StatusBarNotification): LibPebbleNotification? {
-        // Don't even check (or persist) ongoing/group summary notifications
-        if (sbn.isOngoing) {
+        // Don't even check (or persist) ongoing/group summary notifications,
+        // unless it is an alarm
+        val isAlarm = sbn.notification.category == Notification.CATEGORY_ALARM
+        if (sbn.isOngoing && !isAlarm) {
             verboseLog {
                 "Ignoring ongoing notification from ${sbn.packageName.obfuscate(privateLogger)}"
             }
@@ -175,6 +177,7 @@ class NotificationHandler(
                 return null
             }
         }
+        verboseLog { "Actions for ${sbn.packageName.obfuscate(privateLogger)}: ${notification.actions.map { it.title }}" }
         val appProperties = NotificationProperties.lookup(sbn.packageName)
         val decision = decideNotification(
             notification = notification,
@@ -184,6 +187,7 @@ class NotificationHandler(
             inflightNotifications = inflightNotifications.values,
             notificationConfig = notificationConfig.value,
             isLocalOnly = sbn.notification.isLocalOnly(),
+            isAlarm = sbn.notification.category == Notification.CATEGORY_ALARM,
             isRuleFiltered = { checkRuleFiltered(appEntry, notification) },
             screenIsOnAndUnlocked = ::screenIsOnAndUnlocked,
         )
@@ -445,6 +449,7 @@ internal suspend fun decideNotification(
     inflightNotifications: Collection<LibPebbleNotification>,
     notificationConfig: NotificationConfig,
     isLocalOnly: Boolean,
+    isAlarm: Boolean,
     isRuleFiltered: suspend () -> Boolean,
     screenIsOnAndUnlocked: () -> Boolean,
 ): NotificationDecision {
@@ -453,7 +458,7 @@ internal suspend fun decideNotification(
     val showLocalOnlyNotifications = notificationConfig.sendLocalOnlyNotifications || appProperties?.showLocalOnlyNotifications == true
     val allowDuplicates = appEntry.allowDuplicates
     return when {
-        isLocalOnly && !showLocalOnlyNotifications -> NotSentLocalOnly
+        isLocalOnly && !showLocalOnlyNotifications && !isAlarm -> NotSentLocalOnly
         anyContactMuted -> NotSendContactMuted
         !anyContactStarred && appEntry.muteState == MuteState.Always -> NotSentAppMuted
         !anyContactStarred && (channel != null && channel.muteState == MuteState.Always) -> NotSendChannelMuted
