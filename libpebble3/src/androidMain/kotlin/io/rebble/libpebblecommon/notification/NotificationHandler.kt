@@ -177,7 +177,6 @@ class NotificationHandler(
                 return null
             }
         }
-        verboseLog { "Actions for ${sbn.packageName.obfuscate(privateLogger)}: ${notification.actions.map { it.title }}" }
         val appProperties = NotificationProperties.lookup(sbn.packageName)
         val decision = decideNotification(
             notification = notification,
